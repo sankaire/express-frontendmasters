@@ -19,5 +19,5 @@ app.post('/data', (req, res) => {
   res.send(req.body)
 })
 export const start = () => {
-  app.listen(5000, console.log(`server running on 5000`))
+  app.listen(5001, console.log(`server running on 5000`))
 }
