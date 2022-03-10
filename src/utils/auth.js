@@ -16,10 +16,66 @@ export const verifyToken = token =>
     })
   })
 
-export const signup = async (req, res) => {}
+export const signup = async (req, res) => {
+  if (!req.body.email || req.body.password) {
+    res.status(400).send({ message: 'no user created' })
+  }
+  try {
+    const user = await User.create(req.body)
+    const token = newToken(user)
+    return res.status(201).send(token)
+  } catch (e) {
+    console.log(e)
+    return res.send(400).end()
+  }
+}
 
-export const signin = async (req, res) => {}
+export const signin = async (req, res) => {
+  if (!req.body.email || req.body.password) {
+    res.status(400).send({ message: 'no user created' })
+  }
+  const user = User.findOne({ email: req.body.email }).exec()
+  if (!user) {
+    return res
+      .status(401)
+      .send({ message: 'No such user on the database' })
+      .end()
+  }
+  try {
+    const match = user.checkPassword(req.body.password)
+    if (!match) {
+      return res
+        .status(401)
+        .send({ message: 'Passwords do not match' })
+        .end()
+    }
+    const token = newToken(user)
+    return res.status(200).send({ token })
+  } catch (e) {
+    console.log(e)
+    return res.status(400).end()
+  }
+}
 
 export const protect = async (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(400).end()
+  }
+  let token = req.headers.authorization.split('Bearer ')[1]
+  if (!token) {
+    return res.status(400).send({ message: 'No auth' })
+  }
+  try {
+    const payload = await verifyToken(token)
+    const user = await User.findById(payload.id)
+      .select('-password')
+      .lean()
+      .exec()
+    req.user = user
+    next()
+  } catch (e) {
+    return res.status(400).end()
+  }
+
   next()
 }
